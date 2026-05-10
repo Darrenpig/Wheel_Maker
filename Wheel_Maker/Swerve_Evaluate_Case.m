@@ -26,7 +26,7 @@ function out = Swerve_Evaluate_Case(caseIn, p)
     end
 
     % 自动补全缺失的工况输入参数，防止报错
-    caseIn = completeCaseDefaults(caseIn);
+    caseIn = completeCaseDefaults(caseIn, p);
     limits = Swerve_Performance_Limits(p);
 
     % --- 阶段一：调用运动学内核 (解算速度与角度) ---
@@ -36,8 +36,13 @@ function out = Swerve_Evaluate_Case(caseIn, p)
             caseIn.current_theta, caseIn.dt, p);
 
     % 确定转向角加速度：若未指定，则通过微分计算，并施加物理饱和限制
+    wheel_count = 4;
+    if isfield(p, 'swerve_wheel_count')
+        wheel_count = p.swerve_wheel_count;
+    end
+
     if isfield(caseIn, 'alpha_steer') && ~isempty(caseIn.alpha_steer)
-        alphaSteer = reshape(caseIn.alpha_steer, 1, 4);
+        alphaSteer = reshape(caseIn.alpha_steer, 1, wheel_count);
     else
         alphaSteer = abs(omegaSteer) ./ max(caseIn.dt, eps);
         alphaLimit = p.swerve_target_max_alpha;
@@ -75,11 +80,15 @@ function out = Swerve_Evaluate_Case(caseIn, p)
 
     [~, out.max_grip_wheel_idx] = max(dynDbg.grip_usage);
     [~, out.max_delta_wheel_idx] = max(dynDbg.delta);
-    out.wheel_names = ["FL", "FR", "RR", "RL"];
+    if wheel_count == 3
+        out.wheel_names = ["F", "RR", "RL"];
+    else
+        out.wheel_names = ["FL", "FR", "RR", "RL"];
+    end
 end
 
 % ---------------- 辅助函数区 ----------------
-function caseOut = completeCaseDefaults(caseIn)
+function caseOut = completeCaseDefaults(caseIn, p)
     if nargin < 1 || isempty(caseIn), caseIn = struct(); end
     caseOut = caseIn;
     caseOut = setDefault(caseOut, 'vx', 0.0);
@@ -88,9 +97,15 @@ function caseOut = completeCaseDefaults(caseIn)
     caseOut = setDefault(caseOut, 'ax', 0.0);
     caseOut = setDefault(caseOut, 'ay', 0.0);
     caseOut = setDefault(caseOut, 'dt', 0.02);
-    caseOut = setDefault(caseOut, 'current_theta', zeros(1, 4));
 
-    caseOut.current_theta = reshape(caseOut.current_theta, 1, 4);
+    wheel_count = 4;
+    if nargin >= 2 && isfield(p, 'swerve_wheel_count')
+        wheel_count = p.swerve_wheel_count;
+    end
+
+    caseOut = setDefault(caseOut, 'current_theta', zeros(1, wheel_count));
+
+    caseOut.current_theta = reshape(caseOut.current_theta, 1, wheel_count);
     if ~isfinite(caseOut.dt) || caseOut.dt <= 0, caseOut.dt = 0.02; end
 end
 

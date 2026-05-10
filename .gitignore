@@ -1,0 +1,26 @@
+# IDE & Core
+.claude
+.devkit
+.trash
+.vscode
+.idea
+.DS_Store
+
+# Data & Scripts
+*.csv
+*.txt
+*.cjs
+*.mjs
+
+# Configs & Locks
+nginx/
+package-lock.json
+yarn.lock
+
+# Node
+node_modules/
+dist/
+.env
+
+# Vercel
+.vercel/

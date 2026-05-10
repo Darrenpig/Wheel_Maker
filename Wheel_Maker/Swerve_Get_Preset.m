@@ -44,6 +44,20 @@ function p = Swerve_Get_Preset(presetName)
         p.swerve_steer_max_rpm = 100;
         p.swerve_target_max_a = 2.5;
 
+    % [预设 3] 三轮舵轮底盘配置
+    % 特点：前一后二或前二后一分布，这里默认采用前一后二等腰三角形分布。
+    elseif contains(presetName, '三轮')
+        p.swerve_wheel_count = 3;
+        p.swerve_m_total = 20.0;
+        p.swerve_wheel_base_x = 0.300;
+        p.swerve_wheel_base_y = 0.300;
+        p.swerve_wheel_radius = 0.0425;
+        p.swerve_wheel_width = 0.030;
+        p.swerve_h_cog = 0.18;
+        p.swerve_motor_max_rpm = 500;
+        p.swerve_steer_max_rpm = 130;
+        p.swerve_target_max_a = 3.0;
+
     % [预设 3] 未来轮腿底盘 (Wheel-Leg) 预留接口
     elseif contains(presetName, 'Wheel-Leg')
         if ~isfield(p, 'wl_m_total')

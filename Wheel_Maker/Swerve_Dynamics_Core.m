@@ -27,10 +27,15 @@ function [Drive_Torque, Steer_Torque, Slip_Warning, debug] = Swerve_Dynamics_Cor
     end
 
     % (输入合法性检查省略，逻辑保持不变)
+    wheel_count = 4;
+    if isfield(p, 'swerve_wheel_count')
+        wheel_count = p.swerve_wheel_count;
+    end
+
     if ~isscalar(ax) || ~isscalar(ay), error('Swerve_Dynamics_Core:InputError', 'ax 和 ay 必须是标量。'); end
     if ~isfinite(ax) || ~isfinite(ay), error('Swerve_Dynamics_Core:InputError', 'ax 和 ay 必须是有限数值。'); end
-    if numel(alpha_steer) ~= 4, error('Swerve_Dynamics_Core:InputError', 'alpha_steer 必须包含 4 个元素。'); end
-    alpha_steer = reshape(alpha_steer, 1, 4);
+    if numel(alpha_steer) ~= wheel_count, error('Swerve_Dynamics_Core:InputError', 'alpha_steer 元素数量不匹配。'); end
+    alpha_steer = reshape(alpha_steer, 1, wheel_count);
     if any(~isfinite(alpha_steer)), error('Swerve_Dynamics_Core:InputError', 'alpha_steer 不能包含 NaN/Inf。'); end
 
     validatePositiveParam(p.swerve_m_total, 'swerve_m_total');
@@ -66,24 +71,40 @@ function [Drive_Torque, Steer_Torque, Slip_Warning, debug] = Swerve_Dynamics_Cor
     %% 2. 宏观动力学：载荷转移 (Load Transfer) 计算
     m = p.swerve_m_total;
     g = p.g;
-    Lx_full = p.swerve_wheel_base_x;
-    Ly_full = p.swerve_wheel_base_y;
-    h       = p.swerve_h_cog;
+    h = p.swerve_h_cog;
+    Lx = p.swerve_wheel_base_x / 2;
+    Ly = p.swerve_wheel_base_y / 2;
 
-    % 静态均摊法向压力
-    Fz_static = m * g / 4;
+    if wheel_count == 3
+        % 三轮前一后二配置
+        Fz_static = m * g / 3; % 仅作占位参考
+        dFz_x = (m * ax * h) / (2 * Lx);
+        dFz_y = (m * ay * h) / (2 * Ly);
+        Fz_unclipped = [
+            m * g / 2 - dFz_x, ...
+            m * g / 4 + dFz_x / 2 - dFz_y, ...
+            m * g / 4 + dFz_x / 2 + dFz_y
+        ];
+    else
+        % 四轮配置
+        Lx_full = p.swerve_wheel_base_x;
+        Ly_full = p.swerve_wheel_base_y;
 
-    % 计算由力矩平衡引起的载荷增量分布
-    dFz_x = (m * ax * h) / (2 * Lx_full); % 纵向转移量
-    dFz_y = (m * ay * h) / (2 * Ly_full); % 横向转移量
+        % 静态均摊法向压力
+        Fz_static = m * g / 4;
 
-    % 分配至四轮 (依据叠加定理)
-    Fz_unclipped = [
-        Fz_static - dFz_x + dFz_y, ... % FL: 左前轮 (纵向减载，横向增载)
-        Fz_static - dFz_x - dFz_y, ... % FR: 右前轮 (纵向减载，横向减载)
-        Fz_static + dFz_x - dFz_y, ... % RR: 右后轮 (纵向增载，横向减载)
-        Fz_static + dFz_x + dFz_y      % RL: 左后轮 (纵向增载，横向增载)
-    ];
+        % 计算由力矩平衡引起的载荷增量分布
+        dFz_x = (m * ax * h) / (2 * Lx_full); % 纵向转移量
+        dFz_y = (m * ay * h) / (2 * Ly_full); % 横向转移量
+
+        % 分配至四轮 (依据叠加定理)
+        Fz_unclipped = [
+            Fz_static - dFz_x + dFz_y, ... % FL: 左前轮 (纵向减载，横向增载)
+            Fz_static - dFz_x - dFz_y, ... % FR: 右前轮 (纵向减载，横向减载)
+            Fz_static + dFz_x - dFz_y, ... % RR: 右后轮 (纵向增载，横向减载)
+            Fz_static + dFz_x + dFz_y      % RL: 左后轮 (纵向增载，横向增载)
+        ];
+    end
 
     % 剔除负压力 (模拟极限过弯或急刹时某轮"翘起"离地的物理现象)
     Fz = max(Fz_unclipped, 0);
@@ -99,19 +120,19 @@ function [Drive_Torque, Steer_Torque, Slip_Warning, debug] = Swerve_Dynamics_Cor
     w = p.swerve_wheel_width;
 
     % 预分配内存，提升循环执行效率
-    Drive_Torque = zeros(1, 4);
-    Steer_Torque = zeros(1, 4);
-    Slip_Warning = zeros(1, 4);
-    Fx_i_all = zeros(1, 4);
-    Fy_i_all = zeros(1, 4);
-    F_total_i_all = zeros(1, 4);
-    muFz_all = zeros(1, 4);
-    grip_usage_all = zeros(1, 4);
-    delta_all = zeros(1, 4);
-    contact_half_len_all = zeros(1, 4);
+    Drive_Torque = zeros(1, wheel_count);
+    Steer_Torque = zeros(1, wheel_count);
+    Slip_Warning = zeros(1, wheel_count);
+    Fx_i_all = zeros(1, wheel_count);
+    Fy_i_all = zeros(1, wheel_count);
+    F_total_i_all = zeros(1, wheel_count);
+    muFz_all = zeros(1, wheel_count);
+    grip_usage_all = zeros(1, wheel_count);
+    delta_all = zeros(1, wheel_count);
+    contact_half_len_all = zeros(1, wheel_count);
 
     %% 4. 微观物理学解算 (逐轮独立计算)
-    for i = 1:4
+    for i = 1:wheel_count
         % 处于离地状态的轮子直接失去抓地力并跳过计算
         if Fz(i) <= eps
             Slip_Warning(i) = 1;

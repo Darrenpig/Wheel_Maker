@@ -28,13 +28,18 @@ function Swerve_UI_Dashboard()
         'Swerve 四轮舵轮 - 默认', ...
         'Swerve 四轮舵轮 - 轻量小车预设', ...
         'Swerve 四轮舵轮 - 重载底盘预设', ...
+        'Swerve 三轮舵轮 - 默认', ...
         'Wheel-Leg 双轮轮腿 - 预留' ...
     };
 
     defaultPreset = presetNames{1};
     p = Swerve_Get_Preset(defaultPreset);
 
-    state.theta = zeros(1, 4);
+    wheel_count = 4;
+    if isfield(p, 'swerve_wheel_count')
+        wheel_count = p.swerve_wheel_count;
+    end
+    state.theta = zeros(1, wheel_count);
 
     %% ========================= 主窗口 =========================
     fig = uifigure( ...
@@ -248,7 +253,12 @@ function Swerve_UI_Dashboard()
 
     function onRobotTypeChanged()
         p = Swerve_Get_Preset(robotTypeDropdown.Value);
-        state.theta = zeros(1, 4);
+        
+        wheel_count = 4;
+        if isfield(p, 'swerve_wheel_count')
+            wheel_count = p.swerve_wheel_count;
+        end
+        state.theta = zeros(1, wheel_count);
 
         [robotRowsNew, robotFieldsNew] = makeRobotParamRows(p, robotTypeDropdown.Value);
         robotParamTable.Data = robotRowsNew;
@@ -309,7 +319,11 @@ function Swerve_UI_Dashboard()
     end
 
     function resetSteerState()
-        state.theta = zeros(1, 4);
+        wheel_count = 4;
+        if isfield(p, 'swerve_wheel_count')
+            wheel_count = p.swerve_wheel_count;
+        end
+        state.theta = zeros(1, wheel_count);
         updateAll();
     end
 
@@ -383,7 +397,11 @@ function Swerve_UI_Dashboard()
 
         % 额定 / 巡航转向扭矩定义：
         % 稳态巡航，不考虑正在加速打舵，因此 alpha_steer = 0。
-        cruiseCase.alpha_steer = zeros(1, 4);
+        wheel_count = 4;
+        if isfield(out.p, 'swerve_wheel_count')
+            wheel_count = out.p.swerve_wheel_count;
+        end
+        cruiseCase.alpha_steer = zeros(1, wheel_count);
     end
 
     %% =========================================================================

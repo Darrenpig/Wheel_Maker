@@ -1,0 +1,13 @@
+[build]
+  # 设置基础目录为 web 文件夹
+  base = "web"
+  # 构建命令
+  command = "pnpm run build"
+  # 导出的静态文件目录 (相对于 base 目录)
+  publish = "dist"
+
+# 处理 React 等单页应用 (SPA) 的路由
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

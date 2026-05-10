@@ -23,38 +23,51 @@ function [v_drive_out, theta_steer_out, omega_steer_out, debug] = ...
     end
 
     if nargin < 5 || isempty(dt) || dt <= 0, dt = 0.02; end
-    if nargin < 4 || isempty(current_theta), current_theta = zeros(1, 4); end
-    if numel(current_theta) ~= 4
-        error('Swerve_Kinematics_Solver:InputError', 'current_theta 必须包含 4 个元素。');
+    wheel_count = 4;
+    if isfield(p, 'swerve_wheel_count')
+        wheel_count = p.swerve_wheel_count;
     end
 
-    current_theta = reshape(current_theta, 1, 4);
+    if nargin < 4 || isempty(current_theta), current_theta = zeros(1, wheel_count); end
+    if numel(current_theta) ~= wheel_count
+        error('Swerve_Kinematics_Solver:InputError', 'current_theta 元素数量不匹配。');
+    end
+
+    current_theta = reshape(current_theta, 1, wheel_count);
     Lx = p.swerve_wheel_base_x / 2;
     Ly = p.swerve_wheel_base_y / 2;
 
     % 构建相对底盘质心的舵轮坐标矩阵 [x, y_right]
-    % 遵守 1:FL, 2:FR, 3:RR, 4:RL 轮序
-    pos_matrix = [
-         Lx, -Ly;  % FL: 左前，y为负
-         Lx,  Ly;  % FR: 右前，y为正
-        -Lx,  Ly;  % RR: 右后，y为正
-        -Lx, -Ly   % RL: 左后，y为负
-    ];
+    if wheel_count == 3
+        pos_matrix = [
+             Lx,   0;  % F: 前中
+            -Lx,  Ly;  % RR: 右后
+            -Lx, -Ly   % RL: 左后
+        ];
+    else
+        % 遵守 1:FL, 2:FR, 3:RR, 4:RL 轮序
+        pos_matrix = [
+             Lx, -Ly;  % FL: 左前，y为负
+             Lx,  Ly;  % FR: 右前，y为正
+            -Lx,  Ly;  % RR: 右后，y为正
+            -Lx, -Ly   % RL: 左后，y为负
+        ];
+    end
 
     % 获取电机减速后的物理速度上限
     max_steer_w = (p.swerve_steer_max_rpm / p.swerve_i_steer) * (2*pi/60);
     max_drive_v = (p.swerve_motor_max_rpm / p.swerve_i_drive) * (2*pi/60) * p.swerve_wheel_radius;
 
-    v_drive_out = zeros(1, 4);
-    theta_steer_out = zeros(1, 4);
-    omega_steer_out = zeros(1, 4);
+    v_drive_out = zeros(1, wheel_count);
+    theta_steer_out = zeros(1, wheel_count);
+    omega_steer_out = zeros(1, wheel_count);
 
-    raw_theta = zeros(1, 4);
-    raw_speed = zeros(1, 4);
-    optimized_flip = false(1, 4);
+    raw_theta = zeros(1, wheel_count);
+    raw_speed = zeros(1, wheel_count);
+    optimized_flip = false(1, wheel_count);
 
     %% 逐轮解算
-    for i = 1:4
+    for i = 1:wheel_count
         x_i = pos_matrix(i, 1);
         y_i = pos_matrix(i, 2);
 

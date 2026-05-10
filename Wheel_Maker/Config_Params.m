@@ -19,12 +19,22 @@ classdef Config_Params
         swerve_wheel_width  = 0.030;   % 轮子接地宽度 w (m)
         swerve_h_cog        = 0.2;     % 整车质心高度 (m)，决定加减速时的载荷转移剧烈程度
         swerve_I_steer      = 0.015;   % 单个转向机构(含轮子)绕Z轴的转动惯量 (kg·m²)
+        swerve_wheel_count  = 4;       % 舵轮数量 (默认为4，支持3)
 
         % --- 2. 电机与传动系统物理边界 ---
         swerve_i_drive       = 1.0;    % 驱动轴减速比 (电机端转速 / 轮端转速)
         swerve_i_steer       = 1.0;    % 转向轴减速比 (电机端转速 / 舵角转速)
         swerve_motor_max_rpm = 450;    % 驱动电机额定最高转速 (RPM)
         swerve_steer_max_rpm = 120;    % 转向电机额定最高转速 (RPM)，决定舵角响应延迟
+
+        % --- 常规电机参数 (驱动电机参考) ---
+        motor_rated_power   = 250;     % 额定功率 (W)
+        motor_kv            = 100;     % KV数 (RPM/V)
+        motor_rated_torque  = 1.2;     % 额定扭矩 (N·m)
+        motor_peak_torque   = 3.5;     % 峰值扭矩 (N·m)
+        motor_rated_rpm     = 3000;    % 额定转速 (RPM)
+        motor_rated_current = 10;      % 额定电流 (A)
+        motor_peak_current  = 30;      % 峰值电流 (A)
 
         % --- 3. 运动学/动力学性能目标 ---
         swerve_target_max_a     = 3.0;    % 底盘期望达到的最大平移加速度 (m/s²)

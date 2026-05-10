@@ -17,13 +17,22 @@ assertDependency('Swerve_Dynamics_Core');
 assertDependency('Swerve_Evaluate_Case');
 
 %% 1. 载入默认预设
-presetName = 'Swerve 四轮舵轮 - 默认';
+presetName = 'Swerve 三轮舵轮 - 默认';
 p = Swerve_Get_Preset(presetName);
 
-wheelNames = ["FL", "FR", "RR", "RL"];
+wheel_count = 4;
+if isfield(p, 'swerve_wheel_count')
+    wheel_count = p.swerve_wheel_count;
+end
+
+if wheel_count == 3
+    wheelNames = ["F", "RR", "RL"];
+else
+    wheelNames = ["FL", "FR", "RR", "RL"];
+end
 
 fprintf('当前机器人预设: %s\n', presetName);
-fprintf('轮序: [FL(左前), FR(右前), RR(右后), RL(左后)]\n');
+fprintf('轮序: %s\n', strjoin(wheelNames, ', '));
 fprintf('坐标约定: X 向前为正, Y 向右为正, omega_z 俯视逆时针为正\n');
 fprintf('加速度定义: ax / ay 为机器人本体系下真实加速度\n\n');
 
@@ -38,26 +47,26 @@ fprintf('  >> 理论最大转向角速度 : %.3f rad/s，约 %.1f rpm\n\n', ...
     limits.max_steer_rate, limits.max_steer_rate * 60 / (2*pi));
 
 %% 3. 工况 A：静态承载工况 (全静止)
-caseStatic = makeCase(0.0, 0.0, 0.0, 0.0, 0.0, 0.02, zeros(1, 4), zeros(1, 4));
+caseStatic = makeCase(0.0, 0.0, 0.0, 0.0, 0.0, 0.02, zeros(1, wheel_count), zeros(1, wheel_count));
 outStatic = Swerve_Evaluate_Case(caseStatic, p);
 
 %% 4. 工况 B：高速巡航工况 (无加速度，匀速前进)
 cruiseVx = min(1.0, limits.max_drive_speed);
-caseCruise = makeCase(cruiseVx, 0.0, 0.0, 0.0, 0.0, 0.02, zeros(1, 4), zeros(1, 4));
+caseCruise = makeCase(cruiseVx, 0.0, 0.0, 0.0, 0.0, 0.02, zeros(1, wheel_count), zeros(1, wheel_count));
 outCruise = Swerve_Evaluate_Case(caseCruise, p);
 
 %% 5. 工况 C：极限爆发工况 (沿 45° 对角线满功率加速)
 a_limit = p.swerve_target_max_a;
 ax_worst = a_limit * cos(pi/4);
 ay_worst = a_limit * sin(pi/4);
-casePeak = makeCase(0.0, 0.0, 0.0, ax_worst, ay_worst, 0.02, zeros(1, 4), ones(1, 4) * p.swerve_target_max_alpha);
+casePeak = makeCase(0.0, 0.0, 0.0, ax_worst, ay_worst, 0.02, zeros(1, wheel_count), ones(1, wheel_count) * p.swerve_target_max_alpha);
 outPeak = Swerve_Evaluate_Case(casePeak, p);
 
 %% 6. 生成并打印工程汇总报告
 fprintf('【2. 静态载荷与基础阻力】\n');
-fprintf('  >> 静态四轮法向载荷 Fz [FL FR RR RL] = [%.2f %.2f %.2f %.2f] N\n', outStatic.dyn_debug.Fz);
-fprintf('  >> 静态驱动扭矩 [FL FR RR RL] = [%.4f %.4f %.4f %.4f] N·m\n', outStatic.drive_torque);
-fprintf('  >> 静态转向扭矩 [FL FR RR RL] = [%.4f %.4f %.4f %.4f] N·m\n\n', outStatic.steer_torque);
+fprintf('  >> 静态法向载荷 Fz = %s N\n', mat2str(outStatic.dyn_debug.Fz, 4));
+fprintf('  >> 静态驱动扭矩 = %s N·m\n', mat2str(outStatic.drive_torque, 4));
+fprintf('  >> 静态转向扭矩 = %s N·m\n\n', mat2str(outStatic.steer_torque, 4));
 
 fprintf('【3. 巡航稳态工况，vx = %.2f m/s】\n', cruiseVx);
 fprintf('  >> 驱动电机持续扭矩峰值 : %.4f N·m\n', outCruise.max_drive_torque);
@@ -100,7 +109,7 @@ function printWheelSummary(out)
     names = out.wheel_names;
     fprintf('  Wheel | v_drive(m/s) | theta(deg) | driveT(Nm) | steerT(Nm) | Fz(N) | grip | delta(mm) | slip\n');
     fprintf('  ------|--------------|------------|------------|------------|-------|------|-----------|------\n');
-    for i = 1:4
+    for i = 1:length(names)
         if out.slip_flag(i), slipText = 'SLIP'; else, slipText = 'OK'; end
         fprintf('  %5s | %12.4f | %10.2f | %10.4f | %10.4f | %5.1f | %4.2f | %9.5f | %s\n', ...
             names(i), out.v_drive(i), out.theta_steer(i) * 180/pi, out.drive_torque(i), ...
