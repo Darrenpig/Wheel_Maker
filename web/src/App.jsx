@@ -5,8 +5,58 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Activity, Settings, Zap, RotateCcw, Target, Gauge, Cpu } from 'lucide-react';
 import './App.css';
 
+const MOTOR_PRESETS_DB = {
+  '自定义': null,
+  'M3508 - DJI (配C620)': {
+    motor_rated_torque: 3.0,
+    motor_peak_torque: 4.5,
+    motor_rated_current: 10,
+    motor_peak_current: 20,
+    motor_kv: 469,
+    motor_rated_power: 250,
+    motor_rated_rpm: 11256,
+  },
+  '8010 - Unitree': {
+    motor_rated_torque: 3.7,
+    motor_peak_torque: 23.7,
+    motor_rated_current: 10,
+    motor_peak_current: 30,
+    motor_kv: 100,
+    motor_rated_power: 500,
+    motor_rated_rpm: 2400,
+  },
+  'DM3519 - Dongbu': {
+    motor_rated_torque: 3.5,
+    motor_peak_torque: 7.8,
+    motor_rated_current: 10,
+    motor_peak_current: 20,
+    motor_kv: 120,
+    motor_rated_power: 300,
+    motor_rated_rpm: 2800,
+  },
+  'T30 - DJI (舵轮专用)': {
+    motor_rated_torque: 6.2,
+    motor_peak_torque: 15.0,
+    motor_rated_current: 50,
+    motor_peak_current: 100,
+    motor_kv: 100,
+    motor_rated_power: 3600,
+    motor_rated_rpm: 2400,
+  },
+  'U8 - T-Motor (KV110)': {
+    motor_rated_torque: 1.7,
+    motor_peak_torque: 3.0,
+    motor_rated_current: 20,
+    motor_peak_current: 40,
+    motor_kv: 110,
+    motor_rated_power: 600,
+    motor_rated_rpm: 2640,
+  }
+};
+
 function App() {
   const [preset, setPreset] = useState('Swerve 四轮舵轮 - 默认');
+  const [motorPresetKey, setMotorPresetKey] = useState('自定义');
   const [inputs, setInputs] = useState({
     vx: 0,
     vy: 0,
@@ -27,6 +77,9 @@ function App() {
     motor_rated_rpm: 3000,
     motor_rated_current: 10,
     motor_peak_current: 30,
+    swerve_wheel_base_x: 0.27,
+    swerve_wheel_base_y: 0.27,
+    swerve_wheel_radius: 0.0425,
   });
 
   // 当切换预设时，同步更新电机参数输入框的默认值
@@ -47,7 +100,11 @@ function App() {
       motor_rated_rpm: basePresetParams.motor_rated_rpm,
       motor_rated_current: basePresetParams.motor_rated_current,
       motor_peak_current: basePresetParams.motor_peak_current,
+      swerve_wheel_base_x: basePresetParams.swerve_wheel_base_x,
+      swerve_wheel_base_y: basePresetParams.swerve_wheel_base_y,
+      swerve_wheel_radius: basePresetParams.swerve_wheel_radius,
     });
+    setMotorPresetKey('自定义');
   }, [basePresetParams]);
 
   // 合并预设参数和用户手动修改的电机参数
@@ -65,6 +122,9 @@ function App() {
       motor_rated_rpm: parseFloat(motorParams.motor_rated_rpm) || basePresetParams.motor_rated_rpm,
       motor_rated_current: parseFloat(motorParams.motor_rated_current) || basePresetParams.motor_rated_current,
       motor_peak_current: parseFloat(motorParams.motor_peak_current) || basePresetParams.motor_peak_current,
+      swerve_wheel_base_x: parseFloat(motorParams.swerve_wheel_base_x) || basePresetParams.swerve_wheel_base_x,
+      swerve_wheel_base_y: parseFloat(motorParams.swerve_wheel_base_y) || basePresetParams.swerve_wheel_base_y,
+      swerve_wheel_radius: parseFloat(motorParams.swerve_wheel_radius) || basePresetParams.swerve_wheel_radius,
     };
   }, [basePresetParams, motorParams]);
 
@@ -98,6 +158,16 @@ function App() {
   const handleMotorParamChange = (e) => {
     const { name, value } = e.target;
     setMotorParams(prev => ({ ...prev, [name]: value }));
+    setMotorPresetKey('自定义'); // 只要手动修改了参数，就切换回自定义
+  };
+
+  const handleMotorPresetChange = (e) => {
+    const key = e.target.value;
+    setMotorPresetKey(key);
+    const presetData = MOTOR_PRESETS_DB[key];
+    if (presetData) {
+      setMotorParams(prev => ({ ...prev, ...presetData }));
+    }
   };
 
   const chartData = result.wheel_names.map((name, i) => ({
@@ -149,15 +219,48 @@ function App() {
 
               <div className="mt-5 space-y-3 text-sm text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div className="flex justify-between items-center"><span>整车质量:</span> <span className="font-bold text-gray-900">{p.swerve_m_total} kg</span></div>
-                <div className="flex justify-between items-center"><span>轴距/轮距:</span> <span className="font-bold text-gray-900">{p.swerve_wheel_base_x}m / {p.swerve_wheel_base_y}m</span></div>
-                <div className="flex justify-between items-center"><span>轮胎半径:</span> <span className="font-bold text-gray-900">{p.swerve_wheel_radius} m</span></div>
+                <div className="flex justify-between items-center">
+                  <span>轴距 X (m):</span>
+                  <input 
+                    type="number" step="0.01" name="swerve_wheel_base_x" 
+                    value={motorParams.swerve_wheel_base_x} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>轮距 Y (m):</span>
+                  <input 
+                    type="number" step="0.01" name="swerve_wheel_base_y" 
+                    value={motorParams.swerve_wheel_base_y} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>轮胎半径 (m):</span>
+                  <input 
+                    type="number" step="0.001" name="swerve_wheel_radius" 
+                    value={motorParams.swerve_wheel_radius} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
               </div>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
-                <Cpu size={18} className="text-gray-500" /> 电机与传动参数
-              </h2>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                  <Cpu size={18} className="text-gray-500" /> 电机与传动参数
+                </h2>
+                <select 
+                  className="p-1.5 text-xs font-semibold border border-gray-200 rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500"
+                  value={motorPresetKey}
+                  onChange={handleMotorPresetChange}
+                >
+                  {Object.keys(MOTOR_PRESETS_DB).map(key => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 {[
                   { label: '驱动电机最高转速(RPM)', name: 'swerve_motor_max_rpm', col: 2 },
