@@ -104,6 +104,7 @@ function App() {
       swerve_wheel_base_y: basePresetParams.swerve_wheel_base_y,
       swerve_wheel_radius: basePresetParams.swerve_wheel_radius,
     });
+    // eslint-disable-next-line react-hooks/set-state-in-render
     setMotorPresetKey('自定义');
   }, [basePresetParams]);
 
