@@ -83,7 +83,8 @@ end
 function testPureRotationKinematics(p)
     fprintf('[6] 验证纯自转运动学空间投影等效性...');
     [~, ~, ~, kin_dbg] = Swerve_Kinematics_Solver(0, 0, 1.0, zeros(1, 4), 0.02, p);
-    Lx = p.swerve_wheel_base_x / 2; Ly = p.swerve_wheel_base_y / 2;
+    Lx = (p.swerve_wheel_base_x / 1000) / 2; 
+    Ly = (p.swerve_wheel_base_y / 1000) / 2;
     expected_speed = hypot(Lx, Ly);
     assertCloseVec('纯旋转 raw_speed', kin_dbg.raw_speed, expected_speed * ones(1, 4), 1e-8);
     fprintf(' [PASS] 四轮转速严格等效。\n');

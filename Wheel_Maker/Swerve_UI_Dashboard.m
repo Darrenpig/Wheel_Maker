@@ -312,8 +312,32 @@ function Swerve_UI_Dashboard()
         end
 
         p.(fieldName) = newValue;
-        data{row, 2} = newValue;
-        src.Data = data;
+        
+        % --- 新增参数联动逻辑 ---
+        % 修改扭矩或转速时，单向覆盖额定功率
+        if strcmp(fieldName, 'motor_rated_torque') || strcmp(fieldName, 'motor_rated_rpm')
+            if isfield(p, 'motor_rated_torque') && isfield(p, 'motor_rated_rpm')
+                p.motor_rated_power = p.motor_rated_torque * p.motor_rated_rpm * pi / 30;
+            end
+        end
+        
+        % 修改电流或额定扭矩时，单向覆盖峰值扭矩
+        if strcmp(fieldName, 'motor_rated_current') || strcmp(fieldName, 'motor_peak_current') || strcmp(fieldName, 'motor_rated_torque')
+            if isfield(p, 'motor_rated_current') && isfield(p, 'motor_peak_current') && isfield(p, 'motor_rated_torque')
+                if p.motor_rated_current ~= 0
+                    p.motor_peak_torque = p.motor_rated_torque * (p.motor_peak_current / p.motor_rated_current);
+                end
+            end
+        end
+        
+        % 刷新表格数据，以反映联动后的值
+        [robotRowsNew, robotFieldsNew] = makeRobotParamRows(p, robotTypeDropdown.Value);
+        robotParamTable.Data = robotRowsNew;
+        robotParamTable.UserData = robotFieldsNew;
+        
+        [engineeringRowsNew, engineeringFieldsNew] = makeEngineeringParamRows(p, robotTypeDropdown.Value);
+        engineeringTable.Data = engineeringRowsNew;
+        engineeringTable.UserData = engineeringFieldsNew;
 
         updateAll();
     end
@@ -424,11 +448,11 @@ function Swerve_UI_Dashboard()
 
         rows = {
             '全车质量', getField(pLocal, 'swerve_m_total', 25.0), 'kg';
-            '前后轴距', getField(pLocal, 'swerve_wheel_base_x', 0.27), 'm';
-            '左右轮距', getField(pLocal, 'swerve_wheel_base_y', 0.27), 'm';
-            '轮胎半径', getField(pLocal, 'swerve_wheel_radius', 0.0425), 'm';
-            '轮胎宽度', getField(pLocal, 'swerve_wheel_width', 0.03), 'm';
-            '重心高度', getField(pLocal, 'swerve_h_cog', 0.2), 'm';
+            '前后轴距', getField(pLocal, 'swerve_wheel_base_x', 270.0), 'mm';
+            '左右轮距', getField(pLocal, 'swerve_wheel_base_y', 270.0), 'mm';
+            '轮胎半径', getField(pLocal, 'swerve_wheel_radius', 42.5), 'mm';
+            '轮胎宽度', getField(pLocal, 'swerve_wheel_width', 30.0), 'mm';
+            '重心高度', getField(pLocal, 'swerve_h_cog', 200.0), 'mm';
             '转向机构转动惯量', getField(pLocal, 'swerve_I_steer', 0.015), 'kg·m²';
             '目标最大线加速度', getField(pLocal, 'swerve_target_max_a', 3.0), 'm/s²';
             '目标最大转向角加速度', getField(pLocal, 'swerve_target_max_alpha', 20.0), 'rad/s²';
@@ -464,6 +488,13 @@ function Swerve_UI_Dashboard()
             '转向减速比', getField(pLocal, 'swerve_i_steer', 1.0), '-';
             '驱动电机最高转速', getField(pLocal, 'swerve_motor_max_rpm', 450), 'rpm';
             '转向电机最高转速', getField(pLocal, 'swerve_steer_max_rpm', 120), 'rpm';
+            '电机额定功率', getField(pLocal, 'motor_rated_power', 250), 'W';
+            '电机KV数', getField(pLocal, 'motor_kv', 100), 'RPM/V';
+            '电机额定扭矩', getField(pLocal, 'motor_rated_torque', 1.2), 'N·m';
+            '电机峰值扭矩', getField(pLocal, 'motor_peak_torque', 3.5), 'N·m';
+            '电机额定转速', getField(pLocal, 'motor_rated_rpm', 3000), 'RPM';
+            '电机额定电流', getField(pLocal, 'motor_rated_current', 10), 'A';
+            '电机峰值电流', getField(pLocal, 'motor_peak_current', 30), 'A';
             '基准摩擦系数', getField(pLocal, 'swerve_mu_ground', 0.8), '-';
             '地胶阻力放大系数', getField(pLocal, 'swerve_carpet_factor', 4.0), '-';
             '滚动阻力系数', getField(pLocal, 'swerve_roll_resistance', 0.018), '-';
@@ -479,6 +510,13 @@ function Swerve_UI_Dashboard()
             'swerve_i_steer';
             'swerve_motor_max_rpm';
             'swerve_steer_max_rpm';
+            'motor_rated_power';
+            'motor_kv';
+            'motor_rated_torque';
+            'motor_peak_torque';
+            'motor_rated_rpm';
+            'motor_rated_current';
+            'motor_peak_current';
             'swerve_mu_ground';
             'swerve_carpet_factor';
             'swerve_roll_resistance';
@@ -645,7 +683,7 @@ function Swerve_UI_Dashboard()
     function drawDeformationChart(axHandle, names, pLocal, dynDbg)
         cla(axHandle);
 
-        R = pLocal.swerve_wheel_radius;
+        R = pLocal.swerve_wheel_radius / 1000;
 
         [deltaActual, idx] = max(dynDbg.delta);
         contactActual = dynDbg.contact_half_len(idx);

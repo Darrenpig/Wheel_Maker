@@ -13,11 +13,11 @@ classdef Config_Params
         %% ================= [转向舵轮 Swerve 专属参数] =================
         % --- 1. 机器人本体几何与质量分布 ---
         swerve_m_total      = 25.0;    % 全车总质量 (kg)
-        swerve_wheel_base_x = 0.2700;  % 纵向轴距 (m)，即前后轮中心距
-        swerve_wheel_base_y = 0.2700;  % 横向轮距 (m)，即左右轮中心距
-        swerve_wheel_radius = 0.0425;  % 轮子半径 R (m)
-        swerve_wheel_width  = 0.030;   % 轮子接地宽度 w (m)
-        swerve_h_cog        = 0.2;     % 整车质心高度 (m)，决定加减速时的载荷转移剧烈程度
+        swerve_wheel_base_x = 270.0;   % 纵向轴距 (mm)，即前后轮中心距
+        swerve_wheel_base_y = 270.0;   % 横向轮距 (mm)，即左右轮中心距
+        swerve_wheel_radius = 42.5;    % 轮子半径 R (mm)
+        swerve_wheel_width  = 30.0;    % 轮子接地宽度 w (mm)
+        swerve_h_cog        = 200.0;   % 整车质心高度 (mm)，决定加减速时的载荷转移剧烈程度
         swerve_I_steer      = 0.015;   % 单个转向机构(含轮子)绕Z轴的转动惯量 (kg·m²)
         swerve_wheel_count  = 4;       % 舵轮数量 (默认为4，支持3)
 

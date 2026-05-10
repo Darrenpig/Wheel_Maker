@@ -71,9 +71,9 @@ function [Drive_Torque, Steer_Torque, Slip_Warning, debug] = Swerve_Dynamics_Cor
     %% 2. 宏观动力学：载荷转移 (Load Transfer) 计算
     m = p.swerve_m_total;
     g = p.g;
-    h = p.swerve_h_cog;
-    Lx = p.swerve_wheel_base_x / 2;
-    Ly = p.swerve_wheel_base_y / 2;
+    h = p.swerve_h_cog / 1000;
+    Lx = (p.swerve_wheel_base_x / 1000) / 2;
+    Ly = (p.swerve_wheel_base_y / 1000) / 2;
 
     if wheel_count == 3
         % 三轮前一后二配置
@@ -87,8 +87,8 @@ function [Drive_Torque, Steer_Torque, Slip_Warning, debug] = Swerve_Dynamics_Cor
         ];
     else
         % 四轮配置
-        Lx_full = p.swerve_wheel_base_x;
-        Ly_full = p.swerve_wheel_base_y;
+        Lx_full = p.swerve_wheel_base_x / 1000;
+        Ly_full = p.swerve_wheel_base_y / 1000;
 
         % 静态均摊法向压力
         Fz_static = m * g / 4;
@@ -116,8 +116,8 @@ function [Drive_Torque, Steer_Torque, Slip_Warning, debug] = Swerve_Dynamics_Cor
     %% 3. 整车合力需求计算
     Fx_total = m * ax;
     Fy_total = m * ay;
-    R = p.swerve_wheel_radius;
-    w = p.swerve_wheel_width;
+    R = p.swerve_wheel_radius / 1000;
+    w = p.swerve_wheel_width / 1000;
 
     % 预分配内存，提升循环执行效率
     Drive_Torque = zeros(1, wheel_count);

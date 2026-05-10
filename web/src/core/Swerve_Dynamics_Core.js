@@ -13,9 +13,9 @@ export function Swerve_Dynamics_Core(ax, ay, alpha_steer, p_in) {
     
     const m = p.swerve_m_total;
     const g = p.g;
-    const h = p.swerve_h_cog;
-    const Lx = p.swerve_wheel_base_x / 2;
-    const Ly = p.swerve_wheel_base_y / 2;
+    const h = p.swerve_h_cog / 1000;
+    const Lx = (p.swerve_wheel_base_x / 1000) / 2;
+    const Ly = (p.swerve_wheel_base_y / 1000) / 2;
     const wheel_count = p.swerve_wheel_count || 4;
     
     let Fz_static, dFz_x, dFz_y, Fz_unclipped;
@@ -30,8 +30,8 @@ export function Swerve_Dynamics_Core(ax, ay, alpha_steer, p_in) {
             m * g / 4 + dFz_x / 2 + dFz_y
         ];
     } else {
-        const Lx_full = p.swerve_wheel_base_x;
-        const Ly_full = p.swerve_wheel_base_y;
+        const Lx_full = p.swerve_wheel_base_x / 1000;
+        const Ly_full = p.swerve_wheel_base_y / 1000;
         Fz_static = m * g / 4;
         dFz_x = (m * ax * h) / (2 * Lx_full);
         dFz_y = (m * ay * h) / (2 * Ly_full);
@@ -50,8 +50,8 @@ export function Swerve_Dynamics_Core(ax, ay, alpha_steer, p_in) {
     
     const Fx_total = m * ax;
     const Fy_total = m * ay;
-    const R = p.swerve_wheel_radius;
-    const w = p.swerve_wheel_width;
+    const R = p.swerve_wheel_radius / 1000;
+    const w = p.swerve_wheel_width / 1000;
     
     let Drive_Torque = new Array(wheel_count).fill(0);
     let Steer_Torque = new Array(wheel_count).fill(0);

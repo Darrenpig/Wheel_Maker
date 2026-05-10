@@ -54,6 +54,54 @@ const MOTOR_PRESETS_DB = {
   }
 };
 
+const TireDeformationChart = ({ radius, maxDelta, contactHalfLen, wheelName }) => {
+  const visualScale = 25;
+  const R = radius;
+  const deltaActual = maxDelta;
+  let deltaVisual = deltaActual * visualScale;
+  deltaVisual = Math.min(deltaVisual, 0.65 * R);
+  const contactVisual = Math.sqrt(Math.max(0, 2 * R * deltaVisual - deltaVisual * deltaVisual));
+
+  const minX = -1.35 * R * 1000;
+  const minY = -2.35 * R * 1000;
+  const width = 2.7 * R * 1000;
+  const height = 2.47 * R * 1000;
+
+  return (
+    <svg viewBox={`${minX} ${minY} ${width} ${height}`} className="w-full h-full">
+      <defs>
+        <clipPath id="ground-clip">
+          <rect x={-2 * R * 1000} y={0} width={4 * R * 1000} height={3 * R * 1000} />
+        </clipPath>
+      </defs>
+      <g transform="scale(1, -1)">
+        {/* Undeformed circle */}
+        <circle cx={0} cy={R * 1000} r={R * 1000} fill="none" stroke="#9ca3af" strokeWidth="2" strokeDasharray="4 4" />
+        
+        {/* Deformed circle clipped by ground */}
+        <circle cx={0} cy={(R - deltaVisual) * 1000} r={R * 1000} fill="none" stroke="#ea580c" strokeWidth="2" clipPath="url(#ground-clip)" />
+        
+        {/* Ground line */}
+        <line x1={-1.25 * R * 1000} y1={0} x2={1.25 * R * 1000} y2={0} stroke="#1f2937" strokeWidth="1.5" />
+        
+        {/* Contact line */}
+        <line x1={-contactVisual * 1000} y1={0} x2={contactVisual * 1000} y2={0} stroke="#8b5cf6" strokeWidth="5" />
+        
+        {/* Center dot */}
+        <circle cx={0} cy={(R - deltaVisual) * 1000} r={2} fill="#ea580c" />
+      </g>
+      
+      {/* Text overlay (unflipped Y) */}
+      <text x={-1.22 * R * 1000} y={-2.05 * R * 1000} fontSize="12" fill="#4b5563">
+        <tspan x={-1.22 * R * 1000} dy="0">显示轮: {wheelName}</tspan>
+        <tspan x={-1.22 * R * 1000} dy="16">实际下压: {(deltaActual * 1000).toFixed(5)} mm</tspan>
+        <tspan x={-1.22 * R * 1000} dy="16">接触半长: {(contactHalfLen * 1000).toFixed(5)} mm</tspan>
+        <tspan x={-1.22 * R * 1000} dy="16">示意放大: x{visualScale}</tspan>
+      </text>
+    </svg>
+  );
+};
+
 function App() {
   const [preset, setPreset] = useState('Swerve 四轮舵轮 - 默认');
   const [motorPresetKey, setMotorPresetKey] = useState('自定义');
@@ -61,15 +109,25 @@ function App() {
     vx: 0,
     vy: 0,
     omega_z: 0,
+    dt: 0.02,
     ax: 0,
     ay: 0,
   });
 
   const [motorParams, setMotorParams] = useState({
+    swerve_m_total: 25.0,
+    swerve_wheel_base_x: 270.0,
+    swerve_wheel_base_y: 270.0,
+    swerve_wheel_radius: 42.5,
+    swerve_wheel_width: 30.0,
+    swerve_h_cog: 200.0,
+    swerve_I_steer: 0.015,
+    
     swerve_i_drive: 1.0,
     swerve_i_steer: 1.0,
     swerve_motor_max_rpm: 450,
     swerve_steer_max_rpm: 120,
+    
     motor_rated_power: 250,
     motor_kv: 100,
     motor_rated_torque: 1.2,
@@ -77,9 +135,15 @@ function App() {
     motor_rated_rpm: 3000,
     motor_rated_current: 10,
     motor_peak_current: 30,
-    swerve_wheel_base_x: 0.27,
-    swerve_wheel_base_y: 0.27,
-    swerve_wheel_radius: 0.0425,
+
+    swerve_mu_ground: 0.8,
+    swerve_carpet_factor: 4.0,
+    swerve_roll_resistance: 0.018,
+    swerve_eta_slip: 0.9,
+    swerve_hardness_shoreA: 60,
+    swerve_T_mech_drive: 0.1,
+    swerve_T_mech_steer: 0.1,
+    swerve_redundancy: 1.2,
   });
 
   // 当切换预设时，同步更新电机参数输入框的默认值
@@ -89,6 +153,14 @@ function App() {
   useMemo(() => {
     // eslint-disable-next-line react-hooks/set-state-in-render
     setMotorParams({
+      swerve_m_total: basePresetParams.swerve_m_total,
+      swerve_wheel_base_x: basePresetParams.swerve_wheel_base_x,
+      swerve_wheel_base_y: basePresetParams.swerve_wheel_base_y,
+      swerve_wheel_radius: basePresetParams.swerve_wheel_radius,
+      swerve_wheel_width: basePresetParams.swerve_wheel_width,
+      swerve_h_cog: basePresetParams.swerve_h_cog,
+      swerve_I_steer: basePresetParams.swerve_I_steer,
+
       swerve_i_drive: basePresetParams.swerve_i_drive,
       swerve_i_steer: basePresetParams.swerve_i_steer,
       swerve_motor_max_rpm: basePresetParams.swerve_motor_max_rpm,
@@ -100,9 +172,15 @@ function App() {
       motor_rated_rpm: basePresetParams.motor_rated_rpm,
       motor_rated_current: basePresetParams.motor_rated_current,
       motor_peak_current: basePresetParams.motor_peak_current,
-      swerve_wheel_base_x: basePresetParams.swerve_wheel_base_x,
-      swerve_wheel_base_y: basePresetParams.swerve_wheel_base_y,
-      swerve_wheel_radius: basePresetParams.swerve_wheel_radius,
+
+      swerve_mu_ground: basePresetParams.swerve_mu_ground,
+      swerve_carpet_factor: basePresetParams.swerve_carpet_factor,
+      swerve_roll_resistance: basePresetParams.swerve_roll_resistance,
+      swerve_eta_slip: basePresetParams.swerve_eta_slip,
+      swerve_hardness_shoreA: basePresetParams.swerve_hardness_shoreA,
+      swerve_T_mech_drive: basePresetParams.swerve_T_mech_drive,
+      swerve_T_mech_steer: basePresetParams.swerve_T_mech_steer,
+      swerve_redundancy: basePresetParams.swerve_redundancy,
     });
     // eslint-disable-next-line react-hooks/set-state-in-render
     setMotorPresetKey('自定义');
@@ -112,6 +190,14 @@ function App() {
   const p = useMemo(() => {
     return {
       ...basePresetParams,
+      swerve_m_total: parseFloat(motorParams.swerve_m_total) || basePresetParams.swerve_m_total,
+      swerve_wheel_base_x: parseFloat(motorParams.swerve_wheel_base_x) || basePresetParams.swerve_wheel_base_x,
+      swerve_wheel_base_y: parseFloat(motorParams.swerve_wheel_base_y) || basePresetParams.swerve_wheel_base_y,
+      swerve_wheel_radius: parseFloat(motorParams.swerve_wheel_radius) || basePresetParams.swerve_wheel_radius,
+      swerve_wheel_width: parseFloat(motorParams.swerve_wheel_width) || basePresetParams.swerve_wheel_width,
+      swerve_h_cog: parseFloat(motorParams.swerve_h_cog) || basePresetParams.swerve_h_cog,
+      swerve_I_steer: parseFloat(motorParams.swerve_I_steer) || basePresetParams.swerve_I_steer,
+
       swerve_i_drive: parseFloat(motorParams.swerve_i_drive) || basePresetParams.swerve_i_drive,
       swerve_i_steer: parseFloat(motorParams.swerve_i_steer) || basePresetParams.swerve_i_steer,
       swerve_motor_max_rpm: parseFloat(motorParams.swerve_motor_max_rpm) || basePresetParams.swerve_motor_max_rpm,
@@ -123,9 +209,15 @@ function App() {
       motor_rated_rpm: parseFloat(motorParams.motor_rated_rpm) || basePresetParams.motor_rated_rpm,
       motor_rated_current: parseFloat(motorParams.motor_rated_current) || basePresetParams.motor_rated_current,
       motor_peak_current: parseFloat(motorParams.motor_peak_current) || basePresetParams.motor_peak_current,
-      swerve_wheel_base_x: parseFloat(motorParams.swerve_wheel_base_x) || basePresetParams.swerve_wheel_base_x,
-      swerve_wheel_base_y: parseFloat(motorParams.swerve_wheel_base_y) || basePresetParams.swerve_wheel_base_y,
-      swerve_wheel_radius: parseFloat(motorParams.swerve_wheel_radius) || basePresetParams.swerve_wheel_radius,
+
+      swerve_mu_ground: parseFloat(motorParams.swerve_mu_ground) || basePresetParams.swerve_mu_ground,
+      swerve_carpet_factor: parseFloat(motorParams.swerve_carpet_factor) || basePresetParams.swerve_carpet_factor,
+      swerve_roll_resistance: parseFloat(motorParams.swerve_roll_resistance) || basePresetParams.swerve_roll_resistance,
+      swerve_eta_slip: parseFloat(motorParams.swerve_eta_slip) || basePresetParams.swerve_eta_slip,
+      swerve_hardness_shoreA: parseFloat(motorParams.swerve_hardness_shoreA) || basePresetParams.swerve_hardness_shoreA,
+      swerve_T_mech_drive: parseFloat(motorParams.swerve_T_mech_drive) || basePresetParams.swerve_T_mech_drive,
+      swerve_T_mech_steer: parseFloat(motorParams.swerve_T_mech_steer) || basePresetParams.swerve_T_mech_steer,
+      swerve_redundancy: parseFloat(motorParams.swerve_redundancy) || basePresetParams.swerve_redundancy,
     };
   }, [basePresetParams, motorParams]);
 
@@ -134,9 +226,9 @@ function App() {
       vx: parseFloat(inputs.vx) || 0,
       vy: parseFloat(inputs.vy) || 0,
       omega_z: parseFloat(inputs.omega_z) || 0,
+      dt: parseFloat(inputs.dt) || 0.02,
       ax: parseFloat(inputs.ax) || 0,
       ay: parseFloat(inputs.ay) || 0,
-      dt: 0.02
     }, p);
   }, [inputs, p]);
 
@@ -145,9 +237,9 @@ function App() {
       vx: parseFloat(inputs.vx) || 0,
       vy: parseFloat(inputs.vy) || 0,
       omega_z: parseFloat(inputs.omega_z) || 0,
+      dt: parseFloat(inputs.dt) || 0.02,
       ax: 0,
       ay: 0,
-      dt: 0.02
     }, p);
   }, [inputs, p]);
 
@@ -158,7 +250,32 @@ function App() {
 
   const handleMotorParamChange = (e) => {
     const { name, value } = e.target;
-    setMotorParams(prev => ({ ...prev, [name]: value }));
+    
+    setMotorParams(prev => {
+      const next = { ...prev, [name]: value };
+      const numValue = parseFloat(value);
+      
+      // 单向计算：修改扭矩或转速时，计算额定功率 P = T * rpm * pi / 30
+      if (name === 'motor_rated_torque' || name === 'motor_rated_rpm') {
+        const T = name === 'motor_rated_torque' ? numValue : parseFloat(prev.motor_rated_torque);
+        const rpm = name === 'motor_rated_rpm' ? numValue : parseFloat(prev.motor_rated_rpm);
+        if (!isNaN(T) && !isNaN(rpm)) {
+          next.motor_rated_power = (T * rpm * Math.PI / 30).toFixed(1);
+        }
+      }
+      
+      // 单向计算：修改电流或额定扭矩时，计算峰值扭矩 T_peak = T_rated * (I_peak / I_rated)
+      if (name === 'motor_rated_current' || name === 'motor_peak_current' || name === 'motor_rated_torque') {
+        const T_rated = name === 'motor_rated_torque' ? numValue : parseFloat(prev.motor_rated_torque);
+        const I_rated = name === 'motor_rated_current' ? numValue : parseFloat(prev.motor_rated_current);
+        const I_peak = name === 'motor_peak_current' ? numValue : parseFloat(prev.motor_peak_current);
+        if (!isNaN(T_rated) && !isNaN(I_rated) && !isNaN(I_peak) && I_rated !== 0) {
+          next.motor_peak_torque = (T_rated * (I_peak / I_rated)).toFixed(2);
+        }
+      }
+      
+      return next;
+    });
     setMotorPresetKey('自定义'); // 只要手动修改了参数，就切换回自定义
   };
 
@@ -219,28 +336,59 @@ function App() {
               </select>
 
               <div className="mt-5 space-y-3 text-sm text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <div className="flex justify-between items-center"><span>整车质量:</span> <span className="font-bold text-gray-900">{p.swerve_m_total} kg</span></div>
                 <div className="flex justify-between items-center">
-                  <span>轴距 X (m):</span>
+                  <span>全车质量 (kg):</span>
                   <input 
-                    type="number" step="0.01" name="swerve_wheel_base_x" 
+                    type="number" step="0.1" name="swerve_m_total" 
+                    value={motorParams.swerve_m_total} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>轴距 X (mm):</span>
+                  <input 
+                    type="number" step="1" name="swerve_wheel_base_x" 
                     value={motorParams.swerve_wheel_base_x} onChange={handleMotorParamChange} 
                     className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
                   />
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>轮距 Y (m):</span>
+                  <span>轮距 Y (mm):</span>
                   <input 
-                    type="number" step="0.01" name="swerve_wheel_base_y" 
+                    type="number" step="1" name="swerve_wheel_base_y" 
                     value={motorParams.swerve_wheel_base_y} onChange={handleMotorParamChange} 
                     className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
                   />
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>轮胎半径 (m):</span>
+                  <span>轮胎半径 (mm):</span>
                   <input 
-                    type="number" step="0.001" name="swerve_wheel_radius" 
+                    type="number" step="0.1" name="swerve_wheel_radius" 
                     value={motorParams.swerve_wheel_radius} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>轮胎宽度 (m):</span>
+                  <input 
+                    type="number" step="0.001" name="swerve_wheel_width" 
+                    value={motorParams.swerve_wheel_width} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>重心高度 (m):</span>
+                  <input 
+                    type="number" step="0.01" name="swerve_h_cog" 
+                    value={motorParams.swerve_h_cog} onChange={handleMotorParamChange} 
+                    className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>转动惯量 (kg·m²):</span>
+                  <input 
+                    type="number" step="0.001" name="swerve_I_steer" 
+                    value={motorParams.swerve_I_steer} onChange={handleMotorParamChange} 
                     className="w-24 p-1 text-right border border-gray-200 rounded-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
                   />
                 </div>
@@ -250,7 +398,7 @@ function App() {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                  <Cpu size={18} className="text-gray-500" /> 电机与传动参数
+                  <Cpu size={18} className="text-gray-500" /> 工程常数 / 环境 / 电机传动
                 </h2>
                 <select 
                   className="p-1.5 text-xs font-semibold border border-gray-200 rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500"
@@ -274,7 +422,15 @@ function App() {
                   { label: '峰值扭矩(N·m)', name: 'motor_peak_torque', col: 1 },
                   { label: '额定转速(RPM)', name: 'motor_rated_rpm', col: 2 },
                   { label: '额定电流(A)', name: 'motor_rated_current', col: 1 },
-                  { label: '峰值电流(A)', name: 'motor_peak_current', col: 1 }
+                  { label: '峰值电流(A)', name: 'motor_peak_current', col: 1 },
+                  { label: '基准摩擦系数', name: 'swerve_mu_ground', col: 1 },
+                  { label: '地胶阻力放大', name: 'swerve_carpet_factor', col: 1 },
+                  { label: '滚动阻力系数', name: 'swerve_roll_resistance', col: 1 },
+                  { label: '滑移效率', name: 'swerve_eta_slip', col: 1 },
+                  { label: '轮胎邵氏硬度', name: 'swerve_hardness_shoreA', col: 1 },
+                  { label: '安全冗余系数', name: 'swerve_redundancy', col: 1 },
+                  { label: '驱动机械损耗(N·m)', name: 'swerve_T_mech_drive', col: 1 },
+                  { label: '转向机械损耗(N·m)', name: 'swerve_T_mech_steer', col: 1 }
                 ].map((field) => (
                   <div key={field.name} className={field.col === 2 ? "col-span-2" : "col-span-1"}>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{field.label}</label>
@@ -298,6 +454,7 @@ function App() {
                   { label: '前向速度 vx (m/s)', name: 'vx' },
                   { label: '右向速度 vy (m/s)', name: 'vy' },
                   { label: '自转角速度 ωz (rad/s)', name: 'omega_z' },
+                  { label: '控制周期 dt (s)', name: 'dt' },
                   { label: '前向真实加速度 ax (m/s²)', name: 'ax' },
                   { label: '右向真实加速度 ay (m/s²)', name: 'ay' }
                 ].map((field) => (

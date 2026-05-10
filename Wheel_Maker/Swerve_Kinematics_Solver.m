@@ -34,8 +34,8 @@ function [v_drive_out, theta_steer_out, omega_steer_out, debug] = ...
     end
 
     current_theta = reshape(current_theta, 1, wheel_count);
-    Lx = p.swerve_wheel_base_x / 2;
-    Ly = p.swerve_wheel_base_y / 2;
+    Lx = (p.swerve_wheel_base_x / 1000) / 2;
+    Ly = (p.swerve_wheel_base_y / 1000) / 2;
 
     % 构建相对底盘质心的舵轮坐标矩阵 [x, y_right]
     if wheel_count == 3
@@ -56,7 +56,7 @@ function [v_drive_out, theta_steer_out, omega_steer_out, debug] = ...
 
     % 获取电机减速后的物理速度上限
     max_steer_w = (p.swerve_steer_max_rpm / p.swerve_i_steer) * (2*pi/60);
-    max_drive_v = (p.swerve_motor_max_rpm / p.swerve_i_drive) * (2*pi/60) * p.swerve_wheel_radius;
+    max_drive_v = (p.swerve_motor_max_rpm / p.swerve_i_drive) * (2*pi/60) * (p.swerve_wheel_radius / 1000);
 
     v_drive_out = zeros(1, wheel_count);
     theta_steer_out = zeros(1, wheel_count);

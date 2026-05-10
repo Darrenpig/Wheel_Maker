@@ -22,11 +22,11 @@ function p = Swerve_Get_Preset(presetName)
     % 特点：轴距小、轮径小、整车极轻。追求极高的瞬态加速度，但对场地适应性稍弱。
     if contains(presetName, '轻量')
         p.swerve_m_total = 15.0;
-        p.swerve_wheel_base_x = 0.230;
-        p.swerve_wheel_base_y = 0.230;
-        p.swerve_wheel_radius = 0.035;
-        p.swerve_wheel_width = 0.026;
-        p.swerve_h_cog = 0.16;
+        p.swerve_wheel_base_x = 230.0;
+        p.swerve_wheel_base_y = 230.0;
+        p.swerve_wheel_radius = 35.0;
+        p.swerve_wheel_width = 26.0;
+        p.swerve_h_cog = 160.0;
         p.swerve_motor_max_rpm = 600;
         p.swerve_steer_max_rpm = 150;
         p.swerve_target_max_a = 3.5;
@@ -35,11 +35,11 @@ function p = Swerve_Get_Preset(presetName)
     % 特点：底盘宽大、轮宽增加、质心较高。加速度受限，但抗冲击和越障能力极强。
     elseif contains(presetName, '重载')
         p.swerve_m_total = 35.0;
-        p.swerve_wheel_base_x = 0.320;
-        p.swerve_wheel_base_y = 0.320;
-        p.swerve_wheel_radius = 0.050;
-        p.swerve_wheel_width = 0.040;
-        p.swerve_h_cog = 0.24;
+        p.swerve_wheel_base_x = 320.0;
+        p.swerve_wheel_base_y = 320.0;
+        p.swerve_wheel_radius = 50.0;
+        p.swerve_wheel_width = 40.0;
+        p.swerve_h_cog = 240.0;
         p.swerve_motor_max_rpm = 400;
         p.swerve_steer_max_rpm = 100;
         p.swerve_target_max_a = 2.5;
@@ -49,11 +49,11 @@ function p = Swerve_Get_Preset(presetName)
     elseif contains(presetName, '三轮')
         p.swerve_wheel_count = 3;
         p.swerve_m_total = 20.0;
-        p.swerve_wheel_base_x = 0.300;
-        p.swerve_wheel_base_y = 0.300;
-        p.swerve_wheel_radius = 0.0425;
-        p.swerve_wheel_width = 0.030;
-        p.swerve_h_cog = 0.18;
+        p.swerve_wheel_base_x = 300.0;
+        p.swerve_wheel_base_y = 300.0;
+        p.swerve_wheel_radius = 42.5;
+        p.swerve_wheel_width = 30.0;
+        p.swerve_h_cog = 180.0;
         p.swerve_motor_max_rpm = 500;
         p.swerve_steer_max_rpm = 130;
         p.swerve_target_max_a = 3.0;

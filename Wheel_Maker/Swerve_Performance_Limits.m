@@ -19,9 +19,9 @@ function limits = Swerve_Performance_Limits(p)
         p = Config_Params.mergeWithDefaults(p);
     end
 
-    R = p.swerve_wheel_radius;
-    Lx = p.swerve_wheel_base_x / 2;
-    Ly = p.swerve_wheel_base_y / 2;
+    R = p.swerve_wheel_radius / 1000;
+    Lx = (p.swerve_wheel_base_x / 1000) / 2;
+    Ly = (p.swerve_wheel_base_y / 1000) / 2;
 
     % 1. 最大直线速度 = 轮端最高转速 * 轮半径
     limits.max_drive_speed = ...

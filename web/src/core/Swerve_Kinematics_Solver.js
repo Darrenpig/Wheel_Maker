@@ -14,8 +14,8 @@ export function Swerve_Kinematics_Solver(vx, vy, omega_z, current_theta, dt = 0.
         current_theta = new Array(wheel_count).fill(0);
     }
 
-    const Lx = p.swerve_wheel_base_x / 2;
-    const Ly = p.swerve_wheel_base_y / 2;
+    const Lx = (p.swerve_wheel_base_x / 1000) / 2;
+    const Ly = (p.swerve_wheel_base_y / 1000) / 2;
     
     let pos_matrix;
     if (wheel_count === 3) {
@@ -34,7 +34,7 @@ export function Swerve_Kinematics_Solver(vx, vy, omega_z, current_theta, dt = 0.
     }
     
     const max_steer_w = (p.swerve_steer_max_rpm / p.swerve_i_steer) * (2 * Math.PI / 60);
-    const max_drive_v = (p.swerve_motor_max_rpm / p.swerve_i_drive) * (2 * Math.PI / 60) * p.swerve_wheel_radius;
+    const max_drive_v = (p.swerve_motor_max_rpm / p.swerve_i_drive) * (2 * Math.PI / 60) * (p.swerve_wheel_radius / 1000);
     
     let v_drive_out = new Array(wheel_count).fill(0);
     let theta_steer_out = new Array(wheel_count).fill(0);

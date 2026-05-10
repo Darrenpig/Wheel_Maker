@@ -4,11 +4,11 @@ export const Config_Params = {
 
     // 机器人本体几何与质量分布
     swerve_m_total: 25.0,
-    swerve_wheel_base_x: 0.2700,
-    swerve_wheel_base_y: 0.2700,
-    swerve_wheel_radius: 0.0425,
-    swerve_wheel_width: 0.030,
-    swerve_h_cog: 0.2,
+    swerve_wheel_base_x: 270.0,
+    swerve_wheel_base_y: 270.0,
+    swerve_wheel_radius: 42.5,
+    swerve_wheel_width: 30.0,
+    swerve_h_cog: 200.0,
     swerve_I_steer: 0.015,
     swerve_wheel_count: 4,
 
