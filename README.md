@@ -2,7 +2,7 @@
 
 四轮舵轮底盘性能评估、参数敏感性分析与选型辅助工具。
 
-本项目基于 MATLAB 开发，面向 RoboMaster / 移动机器人四轮舵轮底盘的早期设计阶段，用于快速评估底盘几何、电机传动、轮胎参数、摩擦条件和测试工况对轮速、舵角、驱动扭矩、转向扭矩、法向载荷、抓地利用率与轮胎下压形变的影响。
+本项目提供 Web 端（React）与 MATLAB 双端支持，面向 RoboMaster / 移动机器人四轮舵轮底盘的早期设计阶段，用于快速评估底盘几何、电机传动、轮胎参数、摩擦条件和测试工况对轮速、舵角、驱动扭矩、转向扭矩、法向载荷、抓地利用率与轮胎下压形变的影响。
 
 当前版本的核心定位是：
 
@@ -16,6 +16,9 @@
 
 当前版本已经完成以下能力：
 
+- **双端支持**：提供现代化的 Web 端 (React) 交互界面，与经典 MATLAB 桌面版保持底层物理逻辑严格同步。
+- **单位与物理一致性**：UI 层面统一采用直观的 `mm` 作为距离单位（轴距、轮距、轮径等），底层物理引擎在解算前自动转化为 `m` 以保持严格的 SI 国际单位制。
+- **智能参数联动**：电机物理参数支持单向联动计算，例如修改额定扭矩/转速自动更新额定功率，修改电流参数自动估算峰值扭矩。
 - 四轮舵轮底盘运动学解算。
 - 四轮舵轮简化动力学与扭矩估算。
 - 基于物理一致性修正后的载荷转移计算。
@@ -24,10 +27,9 @@
 - 抓地利用率与打滑风险判断。
 - 轮胎下压形变与接触半长估算。
 - 参数化机器人预设。
-- 可交互 MATLAB Dashboard。
+- 可交互 Web Dashboard 与 MATLAB Dashboard。
 - 命令行评估报告。
-- 物理一致性测试。
-- 最小冒烟测试。
+- 物理一致性测试与最小冒烟测试。
 - Wheel-Leg 双轮轮腿模型预留入口。
 
 ***
@@ -36,9 +38,12 @@
 
 ### 2.1 Dashboard 可视化界面
 
-`Swerve_UI_Dashboard.m` 是项目的主要交互入口。
+项目提供了双端交互界面：
 
-当前 Dashboard 包含：
+- **Web 端**：进入 `web` 目录并运行 `pnpm dev` 即可在浏览器中使用现代化界面。在线版本部署于 Netlify 平台。
+- **MATLAB 端**：`Swerve_UI_Dashboard.m` 是传统的 MATLAB 图形化入口。
+
+当前 Dashboard（双端）包含：
 
 - 左侧机器人类型选择。
 - 左侧机器人本体参数编辑。
@@ -148,20 +153,24 @@ ax / ay 表示机器人本体系下的真实加速度，不是达朗贝尔惯性
 
 ```text
 Wheel_Maker/
-├── Config_Params.m
-├── Swerve_Get_Preset.m
-├── Swerve_Performance_Limits.m
-├── Swerve_Kinematics_Solver.m
-├── Swerve_Dynamics_Core.m
-├── Swerve_Evaluate_Case.m
-├── Swerve_UI_Dashboard.m
-├── Swerve_PhysicsConsistency_Test.m
-├── Swerve_Debug_SmokeTest.m
-├── main.m
-└── README.md
+├── web/                             # Web 端工程 (React + Vite)
+│   ├── src/core/                    # JavaScript 版核心物理引擎
+│   ├── src/App.jsx                  # Web Dashboard 界面
+│   └── netlify.toml                 # Netlify 部署配置
+├── Config_Params.m                  # MATLAB 版参数配置
+├── Swerve_Get_Preset.m              # MATLAB 版预设管理
+├── Swerve_Performance_Limits.m      # MATLAB 版性能计算
+├── Swerve_Kinematics_Solver.m       # MATLAB 版运动学解算
+├── Swerve_Dynamics_Core.m           # MATLAB 版动力学计算
+├── Swerve_Evaluate_Case.m           # MATLAB 版统一评估接口
+├── Swerve_UI_Dashboard.m            # MATLAB 图形化界面
+├── Swerve_PhysicsConsistency_Test.m # 物理一致性测试
+├── Swerve_Debug_SmokeTest.m         # 冒烟测试
+├── main.m                           # 命令行入口
+└── README.md                        # 项目说明
 ```
 
-各文件职责如下：
+各核心文件（双端物理核心对应同名文件）职责如下：
 
 | 文件                                 | 作用                    |
 | ---------------------------------- | --------------------- |
@@ -313,15 +322,15 @@ Swerve_UI_Dashboard
 
 ### 8.2 Swerve 机器人几何与质量参数
 
-| 参数                    |    默认值 | 单位    | 说明       |
-| --------------------- | -----: | ----- | -------- |
-| `swerve_m_total`      |   25.0 | kg    | 整车质量     |
-| `swerve_wheel_base_x` | 0.2700 | m     | 前后轴距     |
-| `swerve_wheel_base_y` | 0.2700 | m     | 左右轮距     |
-| `swerve_wheel_radius` | 0.0425 | m     | 轮胎半径     |
-| `swerve_wheel_width`  |  0.030 | m     | 轮胎宽度     |
-| `swerve_h_cog`        |    0.2 | m     | 重心高度     |
-| `swerve_I_steer`      |  0.015 | kg·m² | 转向机构转动惯量 |
+| 参数                    | 默认值 | 单位    | 说明       |
+| --------------------- | ---: | ----- | -------- |
+| `swerve_m_total`      | 25.0 | kg    | 整车质量     |
+| `swerve_wheel_base_x` |  270 | mm    | 前后轴距     |
+| `swerve_wheel_base_y` |  270 | mm    | 左右轮距     |
+| `swerve_wheel_radius` | 42.5 | mm    | 轮胎半径     |
+| `swerve_wheel_width`  |   30 | mm    | 轮胎宽度     |
+| `swerve_h_cog`        |  200 | mm    | 重心高度     |
+| `swerve_I_steer`      | 0.015| kg·m² | 转向机构转动惯量 |
 
 ***
 
@@ -892,3 +901,11 @@ Swerve_UI_Dashboard
 所有输出结果均依赖当前简化模型和输入参数。实际机器人性能还会受到电机、电调、电池、轮胎、地面、机械装配、控制器调参、结构刚度、热状态和实车动态响应等因素影响。
 
 在进行最终设计定型前，应结合实车测试、传感器日志、电机电流数据和机械测试结果进行校准。
+
+***
+
+## 20. 最新更新日志
+
+- **支持 Web 端部署**：新增基于 React + Vite 的 Web 界面，已配置 `netlify.toml` 并迁移至 Netlify 平台进行自动化部署。
+- **距离单位统一**：全局交互输入（如轴距、轮距、轮胎半径）和预设字典中的距离单位由 `m` 统一修改为 `mm`，底层物理解算时自动进行 `mm -> m` 换算。
+- **电机参数单向联动**：UI 中增加电机参数智能计算逻辑。输入额定扭矩与转速自动推算额定功率（$P = T \cdot RPM \cdot \pi / 30$）；输入额定与峰值电流自动推算峰值扭矩。该逻辑在 React 与 MATLAB 两端均已同步实现。
